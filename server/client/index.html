@@ -17,15 +17,16 @@
 <script type="text/javascript" src="js/client.js"></script>
 <script type="text/javascript">
 $(document).ready(function(){
-	tmplData('table=people&limit=10', 'mainList.html', '#theList');	
-	//tmplData('table=people&data={"id":"1","name":"marco"}', 'mainList.html', '#theList');	
-	//tmplData('table=people&data={"id":"1"}', 'mainList.html', '#theList');
+	tmplData({table:"people",limit:10}, 'mainList.html', '#theList');	
+	tmplData({table:"people", where:{id:1}}, 'item.html', '#theList');
+	
+	
 	
 	$.post('/api',{action:"update", table:'people', data:{name:'marcoMod'}, where:{id:1}, token:"secrettoken"}, function(e){
 		console.log(e.responseText);
 	})
 	
-	$.post('/api',{action:"insert", table:'orders', data:{id:1}, token:"supersecrettoken"}, function(e){
+	$.post('/api',{action:"insert", table:'orders', data:{name:"testone"}, token:"supersecrettoken"}, function(e){
 		console.log(e.responseText);
 	})
 	

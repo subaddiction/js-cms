@@ -3,6 +3,7 @@ var fs = require('fs');
 var path = require('path');
 var qs = require('querystring');
 var sqlite3 = require('sqlite3').verbose();
+var sql = require('./include/sqlite3.js');
 
 var file = "data.db";
 var exists = fs.existsSync(file);
@@ -23,9 +24,9 @@ var adminToken = 'supersecrettoken';
 http.createServer(function (req, res) {
 
 	var reqUrl = req.url;
-	console.log(reqUrl);
+	//console.log(reqUrl);
 	var reqArr = reqUrl.split("/");
-	console.log(reqArr);
+	//console.log(reqArr);
 	
 	switch(reqArr[1]){
 		case 'api':
@@ -44,12 +45,11 @@ http.createServer(function (req, res) {
 				}
                 		
 				var post = qs.parse(POST);
-				//console.log(post);
-				if(post.data){
-					var data = JSON.parse(post.data);
-					console.log(data);
-				}
-				//console.log(typeof(data));
+//				console.log(post);
+//				var data = false;
+//				if(post.data){
+//					data = JSON.parse(post.data);
+//				}
 				
 				
 				var auth = false;
@@ -63,7 +63,7 @@ http.createServer(function (req, res) {
 					var user = {id:0,name:'admin'}
 				}
 				
-				//GESTIONE LIVELLI ACCESSO QUI ?
+				//GESTIONE LIVELLI ACCESSO QUI ??
 				switch(post.table){
 					case 'people':
 					case 'events':
@@ -78,7 +78,7 @@ http.createServer(function (req, res) {
 						//PUBLIC WRITABLE, ADMIN READABLE, USER CAN READ OWN RECORDS
 						if(!post.action){
 							if(auth <= 512){
-								post.where = "{user:'"+user.id+"'}";
+								post.where = {user:+user.id};
 							}
 							//post
 							
@@ -102,37 +102,35 @@ http.createServer(function (req, res) {
 					break;
 					
 					default:
-					if(!auth){
 						res.writeHeader(401);
 						res.end();
-					}
 				}
 				
-				
+				var limit = parseInt(post.limit) || 10;
 				
 				switch(post.action){
 					case 'insert':
 						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN] ?
-						//var resObj = sql.insert(db, post.table, post.data);
-						
-						res.writeHeader(200, {"Content-Type": "text/plain"});
-						res.write("INSERT INTO...");
-						res.end();
-						
+						sql.insert(res, db, post.table, post);
+
 					break;
 					
 					case 'update':
 						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN] ?
-						//var resObj = sql.update(db, post.table, post.data);
-						res.writeHeader(200, {"Content-Type": "text/plain"});
-						res.write("UPDATE...");
-						res.end();
+						sql.update(res, db, post.table, post);
+						
 					break;
 					
 					default:
-					
+						sql.select(res, db, post.table, limit, post);
+						//console.log(result);
+						
+						
+						
 						//INSERIRE CONTROLLO TABELLE INTERROGABILI?
 						
+						
+						/****************************************************************
 						if(!data){
 							var q = "SELECT * FROM "+post.table+" WHERE 1";
 						} else {
@@ -165,11 +163,40 @@ http.createServer(function (req, res) {
 							res.write(JSON.stringify(result));
 							res.end();
 						});
+						***********************************************************/
 				}
 				
 				
 			});
 			
+		break;
+		
+		case 'api2':
+			switch(reqArr[2]){
+			
+				case 'get':
+					switch(reqArr[3]){
+						default:
+						res.writeHeader(401);
+						res.end();
+						
+					}
+				break;
+				
+				case 'post':
+					switch(reqArr[3]){
+						default:
+						res.writeHeader(401);
+						res.end();
+						
+					}
+					
+					
+				break;
+				
+				default:
+					
+			}
 		break;
 		
 		default:
