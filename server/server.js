@@ -8,6 +8,10 @@ var file = "data.db";
 var exists = fs.existsSync(file);
 var db = new sqlite3.Database(file);
 
+var userToken = 'secrettoken';
+var adminToken = 'supersecrettoken';
+
+
 //db.serialize(function() {
 //    db.run("CREATE TABLE IF NOT EXISTS people (id INT(11), name TEXT)");
 //});
@@ -19,10 +23,12 @@ var db = new sqlite3.Database(file);
 http.createServer(function (req, res) {
 
 	var reqUrl = req.url;
-	//console.log(req);
+	console.log(reqUrl);
+	var reqArr = reqUrl.split("/");
+	console.log(reqArr);
 	
-	switch(reqUrl){
-		case '/api':
+	switch(reqArr[1]){
+		case 'api':
 			//POSTare su questi url le richieste alla API per ottenere risposte in json
 			//console.log('api request');
 			//console.log(req);
@@ -31,38 +37,104 @@ http.createServer(function (req, res) {
 
 			req.on("data", function(chunk) {
 				POST += chunk;
-				console.log(POST);
+				//console.log(POST);
 				
 				if (POST.length > 1e6){
 					req.end("Too much data!");
 				}
                 		
 				var post = qs.parse(POST);
-				console.log(post);
+				//console.log(post);
+				if(post.data){
+					var data = JSON.parse(post.data);
+					console.log(data);
+				}
+				//console.log(typeof(data));
+				
+				
+				var auth = false;
+				if(post.token == userToken){
+					auth = 512;
+					var user = {id:1,name:'user'}
+				}
+				
+				if(post.token == adminToken){
+					auth = 1024;
+					var user = {id:0,name:'admin'}
+				}
+				
+				//GESTIONE LIVELLI ACCESSO QUI ?
+				switch(post.table){
+					case 'people':
+					case 'events':
+						//PUBLIC READABLE, USER WRITABLE
+						if(post.action && !auth){
+							res.writeHeader(401);
+							res.end();
+						}
+					break;
+					
+					case 'orders':
+						//PUBLIC WRITABLE, ADMIN READABLE, USER CAN READ OWN RECORDS
+						if(!post.action){
+							if(auth <= 512){
+								post.where = "{user:'"+user.id+"'}";
+							}
+							//post
+							
+						} else {
+							if(post.action == 'insert'){
+							
+							} else if(auth < 1024){
+								res.writeHeader(401);
+								res.end();
+							}
+						
+						}
+					break;
+					
+					case 'users':
+						//ADMIN READABLE/WRITABLE
+						if(auth < 1024){
+							res.writeHeader(401);
+							res.end();
+						}
+					break;
+					
+					default:
+					if(!auth){
+						res.writeHeader(401);
+						res.end();
+					}
+				}
+				
+				
 				
 				switch(post.action){
 					case 'insert':
-						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN]
+						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN] ?
 						//var resObj = sql.insert(db, post.table, post.data);
+						
+						res.writeHeader(200, {"Content-Type": "text/plain"});
+						res.write("INSERT INTO...");
+						res.end();
+						
 					break;
 					
 					case 'update':
-						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN]
+						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN] ?
 						//var resObj = sql.update(db, post.table, post.data);
+						res.writeHeader(200, {"Content-Type": "text/plain"});
+						res.write("UPDATE...");
+						res.end();
 					break;
 					
 					default:
 					
-						//INSERIRE CONTROLLO TABELLE INTERROGABILI
+						//INSERIRE CONTROLLO TABELLE INTERROGABILI?
 						
-						//var resObj = sql.select(db, post.table, post.data);
-						if(post.data){
-							var data = JSON.parse(post.data);
-						}
-						//console.log(typeof(data));
 						if(!data){
 							var q = "SELECT * FROM "+post.table+" WHERE 1";
-							console.log(q);
 						} else {
 			
 							var q = "SELECT * FROM "+post.table+" WHERE ";
@@ -73,8 +145,6 @@ http.createServer(function (req, res) {
 								//console.log(data[i])
 							}
 							q += "1";
-			
-							console.log(q);
 						}
 						
 						if(!post.limit || post.limit >100){
@@ -83,12 +153,12 @@ http.createServer(function (req, res) {
 							q += " LIMIT "+parseInt(post.limit);
 						}
 						
+						console.log(q);
+						
 						var result = Array();
 						db.each(q, function(err, row) {
 							//console.log(row);
 							result.push(row);
-							
-			
 						}, function(){
 							//console.log(result);
 							res.writeHeader(200, {"Content-Type": "text/plain"});
@@ -104,7 +174,7 @@ http.createServer(function (req, res) {
 		
 		default:
 			var filePath = './client' + reqUrl;
-			console.log('Serving template: '+filePath);
+			console.log('Template: '+filePath);
 			
 			if ((filePath == './client') || (filePath == './client/')){
 				filePath = './client/index.html';
