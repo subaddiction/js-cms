@@ -2,6 +2,19 @@ var http = require('http');
 var fs = require('fs');
 var path = require('path');
 var qs = require('querystring');
+var sqlite3 = require('sqlite3').verbose();
+
+var file = "data.db";
+var exists = fs.existsSync(file);
+var db = new sqlite3.Database(file);
+
+//db.serialize(function() {
+//    db.run("CREATE TABLE IF NOT EXISTS people (id INT(11), name TEXT)");
+//});
+
+//var sql = require('./include/sqlite3.js');
+
+
 
 http.createServer(function (req, res) {
 
@@ -27,25 +40,64 @@ http.createServer(function (req, res) {
 				var post = qs.parse(POST);
 				console.log(post);
 				
-				var data = require('./include/'+post.file+'.js');
 				switch(post.action){
-					case 'save':
-						//GESTIRE QUI AUTENTICAZIONE
-						var resObj = data.saveRecord(post.class, post.data);
+					case 'insert':
+						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN]
+						//var resObj = sql.insert(db, post.table, post.data);
 					break;
 					
-					case 'filter':
-						var resObj = data.filterRecords(post.class, post.id, post.field, post.key);
+					case 'update':
+						//GESTIRE QUI AUTENTICAZIONE [CHECK TOKEN]
+						//var resObj = sql.update(db, post.table, post.data);
 					break;
 					
 					default:
-						var resObj = data.getRecords(post.class, post.id);
+					
+						//INSERIRE CONTROLLO TABELLE INTERROGABILI
+						
+						//var resObj = sql.select(db, post.table, post.data);
+						if(post.data){
+							var data = JSON.parse(post.data);
+						}
+						//console.log(typeof(data));
+						if(!data){
+							var q = "SELECT * FROM "+post.table+" WHERE 1";
+							console.log(q);
+						} else {
+			
+							var q = "SELECT * FROM "+post.table+" WHERE ";
+							for(i in data){
+								// INSERIRE CONTROLLO CAMPI INTERROGABILI?
+								q+= i+"="+"'"+data[i]+"'";
+								q+= " AND ";
+								//console.log(data[i])
+							}
+							q += "1";
+			
+							console.log(q);
+						}
+						
+						if(!post.limit || post.limit >100){
+							q += " LIMIT 100";	
+						} else {
+							q += " LIMIT "+parseInt(post.limit);
+						}
+						
+						var result = Array();
+						db.each(q, function(err, row) {
+							//console.log(row);
+							result.push(row);
+							
+			
+						}, function(){
+							//console.log(result);
+							res.writeHeader(200, {"Content-Type": "text/plain"});
+							res.write(JSON.stringify(result));
+							res.end();
+						});
 				}
 				
-				res.writeHeader(200, {"Content-Type": "text/plain"});  
-				//res.write(data.resObj);
-				res.write(resObj);
-				res.end();
+				
 			});
 			
 		break;

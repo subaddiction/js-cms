@@ -17,7 +17,10 @@
 <script type="text/javascript" src="js/client.js"></script>
 <script type="text/javascript">
 $(document).ready(function(){
-	tmplData("file=main&class=people&id=10", "mainList.html", "#theList");	
+	tmplData('table=people', 'mainList.html', '#theList');	
+	//tmplData('table=people&data={"id":"1","name":"marco"}', 'mainList.html', '#theList');	
+	
+	//tmplData('table=people&data={"id":"1"}', 'mainList.html', '#theList');	
 });
 </script>
 </head>
